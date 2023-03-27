@@ -55,8 +55,8 @@
 				meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
 				document.getElementsByTagName('head')[0].appendChild(meta);				
 			}	
-			var widthMain = isMobile ? window.innerWidth : 1280;
-			var heightMain = isMobile ? window.innerHeight : 720;
+			var widthMain = isMobile ? window.innerWidth : 720;
+			var heightMain = isMobile ? window.innerHeight : 1280;
 			var canvas = document.querySelector("#unity-canvas");
 			var config = {
 				dataUrl: "Build/sweet_pop_it.data",
@@ -98,8 +98,8 @@
 					}
 					h = Math.floor(w * r);
 				} else {
-					w = 1280;
-					h = 720;
+					w = 720;
+					h = 1280;
 				}
 
 				container.style.width = canvas.style.width = w + "px";
