@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>Sweet Pop It</title>
+	<style>
+		html,
+		body {
+			background-color: #000;
+			background: url(TemplateData/tiled.png) repeat;
+			width: 100%;
+			height: 100%;
+			overflow: visible;
+			padding: 0;
+			margin: 0;
+		}
+
+		div#gameContainer {
+			background: transparent !important;
+			position: absolute;
+		}
+
+		div#gameContainer canvas {
+			position: absolute;
+		}
+
+		div#gameContainer canvas[data-pixel-art="true"] {
+			position: absolute;
+			image-rendering: optimizeSpeed;
+			image-rendering: -webkit-crisp-edges;
+			image-rendering: -moz-crisp-edges;
+			image-rendering: -o-crisp-edges;
+			image-rendering: crisp-edges;
+			image-rendering: -webkit-optimize-contrast;
+			image-rendering: optimize-contrast;
+			image-rendering: pixelated;
+			-ms-interpolation-mode: nearest-neighbor;
+		}	
+	</style>
+</head>
+
+<body>
+	<div id="gameContainer">
+		<canvas id="unity-canvas" data-pixel-art=""></canvas>
+		<script src="Build/sweet_pop_it.loader.js"></script>
+		<script>
+			var unityGame;
+			var isMobile = false;
+			if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+				isMobile = true;
+				var meta = document.createElement('meta');
+				meta.name = 'viewport';
+				meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+				document.getElementsByTagName('head')[0].appendChild(meta);				
+			}	
+			var widthMain = isMobile ? window.innerWidth : 1280;
+			var heightMain = isMobile ? window.innerHeight : 720;
+			var canvas = document.querySelector("#unity-canvas");
+			var config = {
+				dataUrl: "Build/sweet_pop_it.data",
+				frameworkUrl: "Build/sweet_pop_it.framework.js",
+				codeUrl: "Build/sweet_pop_it.wasm",
+				streamingAssetsUrl: "StreamingAssets",
+				companyName: "WildDrew Games",
+				productName: "Sweet Pop It",
+				productVersion: "1.0",
+			};
+			var scaleToFit;
+			try {
+				scaleToFit = !!JSON.parse("");
+			} catch (e) {
+				scaleToFit = true;
+			}
+			function progressHandler(progress) {
+				var percent = progress * 100 + '%';
+				canvas.style.background = 'linear-gradient(to right, white, white ' + percent + ', transparent ' + percent + ', transparent) no-repeat center';
+				canvas.style.backgroundSize = '100% 1rem';
+			}
+			function onResize() {
+				var container = canvas.parentElement;
+				var w;
+				var h;
+
+				if (scaleToFit) {
+					if (isMobile) {
+						widthMain = window.innerWidth;
+						heightMain = window.innerHeight;
+					}				
+					w = window.innerWidth;
+					h = window.innerHeight;
+
+					var r = heightMain / widthMain;
+
+					if (w * r > window.innerHeight) {
+						w = Math.min(w, Math.ceil(h / r));
+					}
+					h = Math.floor(w * r);
+				} else {
+					w = 1280;
+					h = 720;
+				}
+
+				container.style.width = canvas.style.width = w + "px";
+				container.style.height = canvas.style.height = h + "px";
+				container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
+				container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
+			}
+			createUnityInstance(canvas, config, progressHandler).then(function (instance) {
+				unityGame = instance;
+				canvas = instance.Module.canvas;
+				onResize();
+			});
+			window.addEventListener('resize', onResize);
+			onResize();
+		</script>
+		
+	<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script>
+		var isInit = false;
+		Subscriptions();
+		vkBridge.send('VKWebAppInit')
+			.then((data) => {
+			isInit = data.result;
+		})
+		  .catch((error) => {
+			 console.log(JSON.stringify(error));
+		});
+		
+		function Authenticate(){
+			if (isInit) {
+				vkBridge.send('VKWebAppGetUserInfo').then(data =>{
+					unityGame.SendMessage('VKSDK', 'AuthenticateEvent', JSON.stringify(data));
+				})
+				.catch((error) => {
+					unityGame.SendMessage('VKSDK', 'AuthenticateEvent', '');
+				});
+			} else {
+				unityGame.SendMessage('VKSDK', 'CriticalError');
+			}
+		}		
+		
+		function GetUserData(){
+			vkBridge.send("VKWebAppStorageGet",{"keys":["key_0","key_1","key_2","key_3","key_4","key_5","key_6","key_7","key_8","key_9"]}).then((data) => { 
+				if (data.keys) {
+				  unityGame.SendMessage('VKSDK', 'DataGetting', JSON.stringify(data));
+				}
+				else{
+				unityGame.SendMessage('VKSDK', 'DataGetting', '');
+				}
+				})
+				.catch((error) => {
+				unityGame.SendMessage('VKSDK', 'DataGetting', '');
+				console.log(error);
+			});
+        }			
+
+		function SetUserData(id, data){
+			vkBridge.send('VKWebAppStorageSet', {
+			   key: id,
+			   value: data
+			  })
+			  .then((data) => { 
+				if (data.result) {
+				  unityGame.SendMessage('VKSDK', 'DataSavedEvent', JSON.stringify(data));
+				}
+				else{
+				  unityGame.SendMessage('VKSDK', 'DataSavedEvent', '');
+				}
+			  })
+			  .catch((error) => {
+				unityGame.SendMessage('VKSDK', 'DataSavedEvent', '');
+				console.log(error);
+			  });
+		}		
+		
+      function ShowInterstitial(){
+		vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'interstitial' })
+		.then((data) => {
+		window.focus();
+			if (data.result)
+			unityGame.SendMessage('VKSDK', 'InterstitialEvent', JSON.stringify(data));
+			else 
+			unityGame.SendMessage('VKSDK', 'InterstitialEvent', '');
+		}).catch((error) => { console.log(error);});
+      }
+
+      function ShowReward(){
+		vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
+		.then((data) => {
+		window.focus();
+			if (data.result)
+			unityGame.SendMessage('VKSDK', 'RewardEvent', JSON.stringify(data));
+			else 
+			unityGame.SendMessage('VKSDK', 'RewardEvent', '');
+		}).catch((error) => { console.log(error);});
+      }		
+	  
+      function CheckInterstitial(){
+		vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'interstitial' })
+		.then((data) => {
+			if (data.result)
+			unityGame.SendMessage('VKSDK', 'CheckInterstitialEvent', JSON.stringify(data));
+			else 
+			unityGame.SendMessage('VKSDK', 'CheckInterstitialEvent', '');
+		}).catch((error) => { console.log(error);});
+      }
+
+      function CheckReward(){
+		vkBridge.send('VKWebAppCheckNativeAds', { ad_format: 'reward' })
+		.then((data) => {
+			if (data.result)
+			unityGame.SendMessage('VKSDK', 'CheckRewardEvent', JSON.stringify(data));
+			else 
+			unityGame.SendMessage('VKSDK', 'CheckRewardEvent', '');
+		}).catch((error) => { console.log(error);});
+      }	
+	  
+      function WallPost(uid, attach, mes){
+		vkBridge.send('VKWebAppShowWallPostBox', {
+			message: mes,
+			attachment: attach,
+			owner_id: uid
+		  })
+		  .then( (data) => {
+			unityGame.SendMessage('VKSDK', 'WallPostEvent');
+			console.log(JSON.stringify(data));
+		  })
+		  .catch( (error) => {
+			console.log(JSON.stringify(error));
+		  })
+      }		  
+		
+      function ActivityFeed(id, version, token, score){
+			vkBridge.send('VKWebAppCallAPIMethod', {
+			  method: 'secure.addAppEvent',
+			  params: {
+				user_id: id,
+				activity_id: '2',
+				value: score,
+				v: version,
+				access_token: token
+			  }})
+			  .then((data) => { 
+				if (data.response) {
+				  unityGame.SendMessage('VKSDK', 'ActivityFeedEvent');
+				}
+			  })
+			  .catch((error) => {
+				console.log(JSON.stringify(error));
+			  });
+		}			
+		
+		function Logger(_data){
+			console.log(_data);
+		}	
+		
+		function URLDataGET(_data){
+			fetch(_data)
+			  .then(response => response.text())
+			  .then(res => {
+					unityGame.SendMessage('VKSDK', 'URLDataGET', res);
+					});
+
+		}	
+		
+		function Purchase(id){
+			vkBridge.send('VKWebAppShowOrderBox', { 
+				  type: 'item',
+				  item: id
+				  })
+				  .then((data) => {
+				  window.focus();
+					if (data.success) {
+						unityGame.SendMessage('VKSDK', 'PurchaseEvent', id);
+					}
+					else
+					{
+						unityGame.SendMessage('VKSDK', 'PurchaseEvent', '');
+					}
+				  })
+				  .catch((error) => {
+				  window.focus();
+					unityGame.SendMessage('VKSDK', 'PurchaseEvent', '');
+					console.log(JSON.stringify(error));
+				  });
+		}	
+
+		function Invite(){
+			vkBridge.send('VKWebAppShowInviteBox')
+			  .then( (data) => {
+				if (data.success) {
+					unityGame.SendMessage('VKSDK', 'InviteSuccess');
+				  console.log('Приглашения не отправлены: ', data.notSentIds);
+				}
+			  })
+			  .catch( (error) => {
+				console.log(JSON.stringify(error));
+			  });
+		}	
+		
+		function JoinGroup(id){
+			vkBridge.send('VKWebAppJoinGroup', {
+			  group_id: id
+			  })
+			  .then((data) => { 
+				if (data.result) {
+				  unityGame.SendMessage('VKSDK', 'JoinGroupSuccess');
+				}
+			  })
+			  .catch((error) => {
+				console.log(JSON.stringify(error));
+			  });
+		}			
+
+		function LeaderBoard(){
+			vkBridge.send("VKWebAppShowLeaderBoardBox")
+			  .then( (data) => {
+				if (data.success) {
+					unityGame.SendMessage('VKSDK', 'LeaderBoardSuccess');
+				}
+			  })
+			  .catch( (error) => {
+				console.log(JSON.stringify(error));
+			  });
+		}	
+
+		function ToFavorites(){
+			vkBridge.send('VKWebAppAddToFavorites')
+			  .then((data) => { 
+				if (data.result) {
+				  unityGame.SendMessage('VKSDK', 'FavoritesSuccess');
+				}
+			  })
+			  .catch((error) => {
+				console.log(JSON.stringify(error));
+			  });
+		}			
+
+		function AuthToken(id, scopes){
+			vkBridge.send('VKWebAppGetAuthToken', { 
+			  app_id: id, 
+			  scope: scopes
+			  })
+			  .then((data) => { 
+				unityGame.SendMessage('VKSDK', 'AuthTokenEvent', JSON.stringify(data));
+			  })
+			  .catch((error) => {
+			  unityGame.SendMessage('VKSDK', 'AuthTokenEvent', '');
+				console.log(JSON.stringify(error));
+			  });
+		}
+
+		function AppGetFriends(){
+			vkBridge.send('VKWebAppGetFriends', {multi:true})
+			  .then((data) => { 
+				if (data.users) {
+					unityGame.SendMessage('VKSDK', 'FriendsEvent', JSON.stringify(data));
+				}
+				else {
+					unityGame.SendMessage('VKSDK', 'FriendsEvent', '');
+				}
+			  })
+			  .catch((error) => {
+				unityGame.SendMessage('VKSDK', 'FriendsEvent', '');
+				console.log(JSON.stringify(error));
+			  });
+		}		
+		
+		function Subscriptions() {      
+			vkBridge.subscribe((e) => {
+			  if (e.detail.type === 'VKWebAppViewHide') {
+				unityGame.SendMessage('VKSDK', 'AppViewHide');
+			  }
+			});
+			vkBridge.subscribe((e) => {
+			  if (e.detail.type === 'VKWebAppViewRestore') {
+				unityGame.SendMessage('VKSDK', 'AppViewRestore');
+			  }
+			});		
+		}
+		
+		function base64_encode(s) {      
+			return btoa(unescape(encodeURIComponent(s)));
+		}
+		function base64_decode(s) {      
+			return decodeURIComponent(escape(atob(s)));
+		}		
+</script>
+	</div>
+</body>
+
+</html>
